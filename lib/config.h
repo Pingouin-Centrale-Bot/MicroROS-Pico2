@@ -1,0 +1,2 @@
+
+#define BATT_VOLTAGE 24.0
