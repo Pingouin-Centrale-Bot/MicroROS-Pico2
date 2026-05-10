@@ -24,9 +24,10 @@ private:
     int16_t _p1, _p2;
     DCDriverMode _mode;
     DCDriverControl _control;
-    //volatile int16_t _currentPower = 0;
-    //int16_t _targetPower;
-    //struct repeating_timer _timer;
-    //static bool timer_callback(struct repeating_timer *t);
-    //void applyHardwarePower(int16_t power);
+    volatile int16_t _currentPower = 0;
+    int16_t _targetPower;
+    struct repeating_timer _timer;
+    static bool timer_callback(struct repeating_timer *t);
+    void applyHardwarePower(int16_t power);
+    
 };

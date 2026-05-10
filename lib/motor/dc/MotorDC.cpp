@@ -27,18 +27,22 @@ void MotorDC::init(DCDriverMode mode, DCDriverControl control, int16_t p1, int16
 
     // Initialisation en sécurité (moteur arrêté)
     stop();
+
+    add_repeating_timer_ms((int32_t) (1000.0 / POWER_UPDATE_FREQ), MotorDC::timer_callback, this, &_timer);
 }
 
 void MotorDC::setPower(int16_t power, bool direction) {
-
-    // 1. Gestion de l'inversion de direction
-    if (direction == REVERSE) {
-        power = -power;
-    }
-
-    // 2. Sécurité : Contraindre la valeur aux limites du PWM
+    if (direction == REVERSE) power = -power;
+    
+    // Contraindre aux limites
     if (power > MAX_POWER_ABS) power = MAX_POWER_ABS;
     if (power < -MAX_POWER_ABS) power = -MAX_POWER_ABS;
+
+    _targetPower = power;
+}
+
+
+void MotorDC::applyHardwarePower(int16_t power) {
 
     // 3. Routage selon la configuration matérielle
     if (_mode == DCDriverMode::QUAD_SINGLE_DIRECTION) {
@@ -88,6 +92,9 @@ void MotorDC::setPower(int16_t power, bool direction) {
 
 void MotorDC::stop() {
     // Coupe la première broche (valable pour tous les modes)
+    _targetPower = 0;
+    _currentPower = 0;
+    
     digitalWrite(_p1, LOW);
     
     // Si on est en mode bidirectionnel, on coupe aussi la deuxième broche
@@ -96,4 +103,26 @@ void MotorDC::stop() {
     if (_mode == DCDriverMode::DUAL_BI_DIRECTIONAL) {
         analogWrite(_p2, 0);
     }
+}
+
+bool MotorDC::timer_callback(struct repeating_timer *t) {
+    // Récupération de l'instance de la classe
+    MotorDC* instance = (MotorDC*)t->user_data;
+    
+    if (instance->_currentPower != instance->_targetPower) {; 
+
+        if (instance->_currentPower < instance->_targetPower) {
+            instance->_currentPower += POWER_UPDATE_STEP;
+            if (instance->_currentPower > instance->_targetPower) 
+                instance->_currentPower = instance->_targetPower;
+        } else {
+            instance->_currentPower -= POWER_UPDATE_STEP;
+            if (instance->_currentPower < instance->_targetPower) 
+                instance->_currentPower = instance->_targetPower;
+        }
+        
+        // Applique la puissance
+        instance->applyHardwarePower(instance->_currentPower);
+    }
+    return true; // Continue le timer
 }

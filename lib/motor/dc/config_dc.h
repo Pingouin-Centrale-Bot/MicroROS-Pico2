@@ -14,7 +14,12 @@
 // 15000 - Un coupage |  
 
 #define PWM_FREQ 10000.0f // ~ 20kHz
-#define MAX_POWER_ABS 255
+#define MAX_POWER_ABS 255 
+
+// PWM Ramp
+#define POWER_RAMP_SPEED 30 // pas PWM
+#define POWER_UPDATE_FREQ 10 // Hz
+#define POWER_UPDATE_STEP (POWER_RAMP_SPEED/POWER_UPDATE_FREQ + 1) // Step pwm à chaque update du power
 
 // Enable pins
 #define M1_EN_PIN 10

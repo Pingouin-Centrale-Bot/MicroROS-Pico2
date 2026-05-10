@@ -3,3 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+ROS2-WS-test/build/
+ROS2-WS-test/install/
+ROS2-WS-test/log/
