@@ -1,3 +1,10 @@
+#define DEBUG
+
+#define RICRO_ROS
+
+#ifdef RICRO_ROS
+
+
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
 #include <hardware/watchdog.h>
@@ -13,7 +20,7 @@
 
 #include "BaseController.h"
 
-#define SIMU
+//#define SIMU
 
 #define DBG Serial1
 
@@ -141,6 +148,10 @@ void wheels_cmd_cb(const void *msgin)
 // ── Setup ─────────────────────────────────────────────────────────────────────
 void setup()
 {
+  Serial.begin(115200);
+  unsigned long start = millis();
+  while (!Serial && (millis() - start < 2000));
+
   Serial1.setTX(0);
   Serial1.setRX(1);
   DBG.begin(115200);
@@ -151,7 +162,6 @@ void setup()
   init_joint_state_msg();
 
   base.init();
-  base.enableBase();
   DBG.println("[INIT] BaseController OK");
 
   Serial.begin(115200);
@@ -210,6 +220,7 @@ void setup()
   DBG.println("[INIT] horloge synced");
 
   DBG.println("[INIT] done — spinning\r\n");
+  base.enableBase();
 
 }
 
@@ -218,3 +229,5 @@ void loop()
 {
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
 }
+
+#endif

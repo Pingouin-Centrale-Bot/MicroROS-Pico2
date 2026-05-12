@@ -1,20 +1,13 @@
-/*#include <Arduino.h>
+
+//#define TEST_STEPPER_TEST
+
+#ifdef TEST_STEPPER_TEST
+
+#include <Arduino.h>
 #include <TMC2209.h>
 #include "FastAccelStepper.h"
+#include "config_stepper.h"
 
-
-#define M1_STP_PIN          7   // Pin Step
-#define M1_DIR_PIN          6   // Pin Direction
-#define M1_EN_PIN           10  // Pin Enable (Hardware)
-#define M_DRIVE_RX          5   // Pin RX Pico 
-#define M_DRIVE_TX          4   // Pin TX Pico 
-#define M1_DRIVER_ADDRESS   TMC2209::SERIAL_ADDRESS_0
-
-// Paramètres moteurs
-#define M_DRIVE_STEPS_PER_TURN 200
-#define M_DRIVE_MICROSTEP      16
-#define M_R_SENSE              0.11f
-#define DIRECTION_DELAY 10 // ms
 
 const double _K = (M_DRIVE_STEPS_PER_TURN / (2.0 * M_PI)) * 1000.0 * M_DRIVE_MICROSTEP; // Constant for: (Steps per Rev / 2PI) * 1000ms * Microsteps (rad/s to milliHz)
 const int32_t _ACCEL = 17 * M_DRIVE_STEPS_PER_TURN * M_DRIVE_MICROSTEP; // Max acceleration of 1020rot/min², equivalent to 3.2 m/s²
@@ -26,12 +19,12 @@ FastAccelStepper *stepper = NULL;
 
 void disable_motor() {
     driver->enable();
-    //digitalWrite(M1_EN_PIN, HIGH); // Logique classique : HIGH = OFF
+    //digitalWrite(M2_EN_PIN, HIGH); // Logique classique : HIGH = OFF
 }
 
 void enable_motor() {
     driver->enable();
-    //digitalWrite(M1_EN_PIN, LOW); // LOW = ON
+    //digitalWrite(M2_EN_PIN, LOW); // LOW = ON
 }
 
 void set_speed(double w1) {
@@ -58,7 +51,7 @@ void setup() {
     Serial1.println("--- Setup ---");
     driver = new TMC2209();
     delay(2000);
-    driver->setup(Serial2, 115200, M1_DRIVER_ADDRESS, M_DRIVE_RX, M_DRIVE_TX);
+    driver->setup(Serial2, 115200, M2_DRIVER_ADDRESS, M_DRIVE_RX, M_DRIVE_TX);
     //driver->setRMSCurrent(1000, M_R_SENSE);
     //driver->enable();
     //driver->setMicrostepsPerStep(16);
@@ -76,17 +69,17 @@ void setup() {
     driver->setRMSCurrent(1000, M_R_SENSE, .3F);
     driver->setMicrostepsPerStep(M_DRIVE_MICROSTEP);
     driver->enable();
-    driver->setHardwareEnablePin(M1_EN_PIN);
+    driver->setHardwareEnablePin(M2_EN_PIN);
 
 
     engine.init();
     engine.setDebugLed(LED_BUILTIN);
-    stepper = engine.stepperConnectToPin(M1_STP_PIN);
+    stepper = engine.stepperConnectToPin(M2_STP_PIN);
     
-    stepper->setDirectionPin(M1_DIR_PIN, true, DIRECTION_DELAY);
+    stepper->setDirectionPin(M2_DIR_PIN, true, DIRECTION_DELAY);
     stepper->setAcceleration(_ACCEL);
     stepper->setForwardPlanningTimeInMs(10);
-    stepper->setEnablePin(M1_EN_PIN, true);
+    stepper->setEnablePin(M2_EN_PIN, true);
     stepper->setAutoEnable(false);
 
     disable_motor();
@@ -110,4 +103,6 @@ void loop() {
     stepper->disableOutputs();
 
     Serial1.println("Fin boucle");
-}*/
+}
+
+#endif

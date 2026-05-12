@@ -7,14 +7,27 @@ BaseController::BaseController() : engine(FastAccelStepperEngine()) {
 }
 
 void BaseController::init() {
-    // Utilisation des index 0-3 pour NB_MOTOR 4
-    motors[0] = new MotorStepper(engine, M2_DRIVER_ADDRESS, M2_STP_PIN, M2_DIR_PIN, M2_EN_PIN);
-    motors[1] = new MotorStepper(engine, M3_DRIVER_ADDRESS, M3_STP_PIN, M3_DIR_PIN, M3_EN_PIN);
-    motors[2] = nullptr;
-    motors[3] = nullptr;
+    engine.init();
 
-    if (motors[0]) motors[0]->begin();
-    if (motors[1]) motors[1]->begin();
+    M_DRIVE_SERIAL.setRX(M_DRIVE_RX);
+    M_DRIVE_SERIAL.setTX(M_DRIVE_TX);
+    M_DRIVE_SERIAL.begin(M_BAUDRATE_SERIAL);
+    delay(100);
+    // Utilisation des index 0-3 pour NB_MOTOR 4
+    motors[0] = nullptr;
+    motors[1] = new MotorStepper(engine, M2_DRIVER_ADDRESS, M2_STP_PIN, M2_DIR_PIN, M2_EN_PIN);
+    motors[2] = new MotorStepper(engine, M3_DRIVER_ADDRESS, M3_STP_PIN, M3_DIR_PIN, M3_EN_PIN);
+    motors[3] = new MotorStepper(engine, M1_DRIVER_ADDRESS, M1_STP_PIN, M1_DIR_PIN, M1_EN_PIN);
+
+    for (size_t i = 0; i < NB_MOTOR; i++) {
+        if (motors[i]) {
+            motors[i]->begin();
+            delay(200); // ← laisse le bus UART se stabiliser
+        }
+    }
+
+
+    Serial1.printf("Initialisation moteurs Ok\r\n");
 }
 
 void BaseController::setSpeedBase(double joints_speed[4]) {

@@ -3,7 +3,7 @@
 #include <math.h>
 #include <pico/stdlib.h>
 
-
+#define DEBUG
 
 
 MotorStepper::MotorStepper(FastAccelStepperEngine& engine, TMC2209::SerialAddress serial_address, uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin)
@@ -15,42 +15,42 @@ void MotorStepper::begin()
 
     _ref = (uint8_t)_serial_address;
 
-    _driver->setup(M_DRIVE_SERIAL, M_BAUDRATE_SERIAL, _serial_address, M_DRIVE_RX, M_DRIVE_TX);
+    Serial1.printf("MotorStepper %d: Setting up on Serial Adress %d ...\r\n", _ref, _serial_address);
+    _driver->setupShared(M_DRIVE_SERIAL, M_BAUDRATE_SERIAL, _serial_address);
+    delay(50); 
     Serial1.printf("MotorStepper %d: Serial setup complete.\r\n", _ref);
     
     // --- TEST DE CONNEXION ---
-    #ifndef DEBUG
+    #ifdef DEBUG
     Serial1.println("Testing TMC2209 communication...");
     Serial1.printf("[MotorStepper %d] isSetupAndCommunicating : %s\r\n", _ref, _driver->isSetupAndCommunicating() ? "YES" : "NO");
     Serial1.printf("[MotorStepper %d] isCommunicating : %s\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO");
     #endif
 
-    #ifdef SIMU
-    if (!_driver->isSetupAndCommunicating()) {
+    if (_driver->isSetupAndCommunicating()) {
+
+        _driver->setReplyDelay(4);
+        _driver->enableAutomaticCurrentScaling();
+        _driver->enableAutomaticGradientAdaptation();
+        set_current(M_DEFAULT_CURRENT_MA);
+        _driver->setMicrostepsPerStep(M_DRIVE_MICROSTEP);
+        _driver->enable();
+        _driver->setHardwareEnablePin(_en_pin);
+        delay(10);
+        Serial1.printf("[MotorStepper %d] Post-config check: %s\r\n", _ref,
+            _driver->isSetupAndCommunicating() ? "OK" : "FAIL");
+
+
+    } else {
         Serial1.printf(" [ERROR] Le TMC2209 %d : ne répond pas (isSetup:%s, isSetupAndCommunicating:%s, )\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO", _driver->isSetupAndCommunicating() ? "YES" : "NO");
-        return;
     }
-    #endif
-
-    _driver->setReplyDelay(4);
-    _driver->enableAutomaticCurrentScaling();
-    _driver->enableAutomaticGradientAdaptation();
-    set_current(M_DEFAULT_CURRENT_MA);
-    _driver->setMicrostepsPerStep(M_DRIVE_MICROSTEP);
-    _driver->enable();
-    _driver->setHardwareEnablePin(_en_pin);
-
-    _engine.init();
-    #ifndef DEBUG
-    _engine.setDebugLed(LED_BUILTIN);
-    #endif
-
-    _stepper = _engine.stepperConnectToPin(M1_STP_PIN);
+    Serial1.printf("[MotorStepper %d] Connecting Engine...\r\n", _ref);
+    _stepper = _engine.stepperConnectToPin(_step_pin);
     
     _stepper->setDirectionPin(_dir_pin, true, DIRECTION_DELAY);
     _stepper->setAcceleration(_ACCEL);
     _stepper->setForwardPlanningTimeInMs(10);
-    _stepper->setEnablePin(M1_EN_PIN, true);
+    _stepper->setEnablePin(_en_pin, true);
     _stepper->setAutoEnable(false);
 
     disable();
