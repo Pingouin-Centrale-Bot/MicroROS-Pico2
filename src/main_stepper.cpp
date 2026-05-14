@@ -33,21 +33,21 @@ void setup() {
 void loop() {
     delay(3000);
     digitalWrite(LED_BUILTIN, HIGH);
-    motor->enable();
-    motor->setSpeed(0.5);
+    //motor->enable();
+    //motor->setSpeed(0.5);
     
     delay(2000);
     digitalWrite(LED_BUILTIN, LOW);
-    motor->setSpeed(0.0);
+    //motor->setSpeed(0.0);
     delay(50);
     digitalWrite(LED_BUILTIN, HIGH);
     
-    motor->setSpeed(-0.5);
+    //motor->setSpeed(-0.5);
 
     delay(2000);
     digitalWrite(LED_BUILTIN, LOW);
-    motor->setSpeed(0.0);
-    motor->disable();
+    //motor->setSpeed(0.0);
+    //motor->disable();
 
     LOG.println("Fin boucle");
     // Monitoring minimal toutes les 500ms
