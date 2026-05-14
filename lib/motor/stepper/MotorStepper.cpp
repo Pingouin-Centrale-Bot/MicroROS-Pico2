@@ -5,6 +5,7 @@
 
 #define DEBUG
 
+SerialUSB logger = Serial;
 
 MotorStepper::MotorStepper(FastAccelStepperEngine& engine, TMC2209::SerialAddress serial_address, uint8_t step_pin, uint8_t dir_pin, uint8_t en_pin)
     : _engine(engine), _serial_address(serial_address), _dir_pin(dir_pin), _step_pin(step_pin), _en_pin(en_pin) {}
@@ -15,16 +16,16 @@ void MotorStepper::begin()
 
     _ref = (uint8_t)_serial_address;
 
-    Serial1.printf("MotorStepper %d: Setting up on Serial Adress %d ...\r\n", _ref, _serial_address);
+    logger.printf("MotorStepper %d: Setting up on Serial Adress %d ...\r\n", _ref, _serial_address);
     _driver->setupShared(M_DRIVE_SERIAL, M_BAUDRATE_SERIAL, _serial_address);
     delay(50); 
-    Serial1.printf("MotorStepper %d: Serial setup complete.\r\n", _ref);
+    logger.printf("MotorStepper %d: Serial setup complete.\r\n", _ref);
     
     // --- TEST DE CONNEXION ---
     #ifdef DEBUG
-    Serial1.println("Testing TMC2209 communication...");
-    Serial1.printf("[MotorStepper %d] isSetupAndCommunicating : %s\r\n", _ref, _driver->isSetupAndCommunicating() ? "YES" : "NO");
-    Serial1.printf("[MotorStepper %d] isCommunicating : %s\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO");
+    logger.println("Testing TMC2209 communication...");
+    logger.printf("[MotorStepper %d] isSetupAndCommunicating : %s\r\n", _ref, _driver->isSetupAndCommunicating() ? "YES" : "NO");
+    logger.printf("[MotorStepper %d] isCommunicating : %s\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO");
     #endif
 
     if (_driver->isSetupAndCommunicating()) {
@@ -37,14 +38,14 @@ void MotorStepper::begin()
         _driver->enable();
         _driver->setHardwareEnablePin(_en_pin);
         delay(10);
-        Serial1.printf("[MotorStepper %d] Post-config check: %s\r\n", _ref,
+        logger.printf("[MotorStepper %d] Post-config check: %s\r\n", _ref,
             _driver->isSetupAndCommunicating() ? "OK" : "FAIL");
 
 
     } else {
-        Serial1.printf(" [ERROR] Le TMC2209 %d : ne répond pas (isSetup:%s, isSetupAndCommunicating:%s, )\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO", _driver->isSetupAndCommunicating() ? "YES" : "NO");
+        logger.printf(" [ERROR] Le TMC2209 %d : ne répond pas (isSetup:%s, isSetupAndCommunicating:%s, )\r\n", _ref, _driver->isCommunicating() ? "YES" : "NO", _driver->isSetupAndCommunicating() ? "YES" : "NO");
     }
-    Serial1.printf("[MotorStepper %d] Connecting Engine...\r\n", _ref);
+    logger.printf("[MotorStepper %d] Connecting Engine...\r\n", _ref);
     _stepper = _engine.stepperConnectToPin(_step_pin);
     
     _stepper->setDirectionPin(_dir_pin, true, DIRECTION_DELAY);
@@ -55,7 +56,7 @@ void MotorStepper::begin()
 
     disable();
     
-    Serial1.printf("Stepper %d initialized\r\n", _ref);
+    logger.printf("Stepper %d initialized\r\n", _ref);
 
 }
 
@@ -77,21 +78,21 @@ void MotorStepper::setSpeed(double rads) {
         _stepper->runBackward();
     }
     #ifdef DEBUG
-    Serial1.printf("Stepper %d running at %lu mHz\r\n", _ref, speeds_milliHz);
+    logger.printf("Stepper %d running at %lu mHz\r\n", _ref, speeds_milliHz);
     #endif
 }
 
 void MotorStepper::enable() {
     _stepper->enableOutputs();
     #ifdef DEBUG
-    Serial1.printf("Stepper %d enabled\r\n", _ref);
+    logger.printf("Stepper %d enabled\r\n", _ref);
     #endif
 }
 
 void MotorStepper::disable() {
     _stepper->disableOutputs();
     #ifdef DEBUG
-    Serial1.printf("Stepper %d disabled\r\n", _ref);
+    logger.printf("Stepper %d disabled\r\n", _ref);
     #endif
 }
 

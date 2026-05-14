@@ -14,14 +14,18 @@ void setup() {
 }
 
 void loop() {
-    for (int pos = 0; pos <= 180; pos++) {
+    /*for (int pos = 0; pos <= 180; pos++) {
         monServo.write(pos);
         delay(15);
     }
     for (int pos = 180; pos >= 0; pos--) {
         monServo.write(pos);
         delay(15);
-    }
+    }*/
+   monServo.write(20);
+   delay(1000);
+   monServo.write(0);
+   delay(10000);
 }
 
 #endif

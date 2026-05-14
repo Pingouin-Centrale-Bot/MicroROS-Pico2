@@ -1,9 +1,10 @@
 #define DEBUG
 
-#define RICRO_ROS
+//#define RICRO_ROS
 
 #ifdef RICRO_ROS
 
+#define CARD_ID 0
 
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
@@ -45,9 +46,9 @@ std_msgs__msg__Int32               health_msg;
 robot_messages__msg__WheelsCommand wheels_cmd_msg;
 sensor_msgs__msg__JointState       wheels_state_msg;
 
-rosidl_runtime_c__String joint_names_buf[4];
-double joint_position_buf[4];
-double joint_velocity_buf[4];
+rosidl_runtime_c__String joint_names_buf[2];
+double joint_position_buf[2];
+double joint_velocity_buf[2];
 
 
 // ── Hardware ──────────────────────────────────────────────────────────────────
@@ -76,20 +77,24 @@ void init_joint_state_msg()
   sensor_msgs__msg__JointState__init(&wheels_state_msg);
 
   wheels_state_msg.name.data     = joint_names_buf;
-  wheels_state_msg.name.size     = 4;
-  wheels_state_msg.name.capacity = 4;
+  wheels_state_msg.name.size     = NB_MOT_CARD;
+  wheels_state_msg.name.capacity = NB_MOT_CARD;
+  #if CARD_ID == 0
   rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[0], "lf_joint");
-  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[1], "rf_joint");
-  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[2], "rb_joint");
-  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[3], "lb_joint");
+  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[1], "rb_joint");
+  #endif
+  #if CARD_ID == 1
+  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[0], "rf_joint");
+  rosidl_runtime_c__String__assign(&wheels_state_msg.name.data[1], "lb_joint");
+  #endif
 
   wheels_state_msg.velocity.data     = joint_velocity_buf;
-  wheels_state_msg.velocity.size     = 4;
-  wheels_state_msg.velocity.capacity = 4;
+  wheels_state_msg.velocity.size     = NB_MOT_CARD;
+  wheels_state_msg.velocity.capacity = NB_MOT_CARD;
 
   wheels_state_msg.position.data     = joint_position_buf;
-  wheels_state_msg.position.size     = 4;
-  wheels_state_msg.position.capacity = 4;
+  wheels_state_msg.position.size     = NB_MOT_CARD;
+  wheels_state_msg.position.capacity = NB_MOT_CARD;
 
   wheels_state_msg.effort.data     = NULL;
   wheels_state_msg.effort.size     = 0;
@@ -120,13 +125,13 @@ void joints_state_timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
     wheels_state_msg.velocity.data[0] = current_state.w1;
     wheels_state_msg.velocity.data[1] = current_state.w2;
-    wheels_state_msg.velocity.data[2] = current_state.w3;
-    wheels_state_msg.velocity.data[3] = current_state.w4;
+    //wheels_state_msg.velocity.data[2] = current_state.w3;
+    //wheels_state_msg.velocity.data[3] = current_state.w4;
 
     wheels_state_msg.position.data[0] = current_state.p1;
     wheels_state_msg.position.data[1] = current_state.p2;
-    wheels_state_msg.position.data[2] = current_state.p3;
-    wheels_state_msg.position.data[3] = current_state.p4;
+    //wheels_state_msg.position.data[2] = current_state.p3;
+    //wheels_state_msg.position.data[3] = current_state.p4;
 
     RCSOFTCHECK(rcl_publish(&wheels_publisher, &wheels_state_msg, NULL));
   }
@@ -138,9 +143,16 @@ void wheels_cmd_cb(const void *msgin)
     (const robot_messages__msg__WheelsCommand *)msgin;
   if (!cmd) return;
 
-  DBG.printf("[CMD] lf=%.3f rf=%.3f rb=%.3f lb=%.3f\r\n",
-             cmd->lf_joint, cmd->rf_joint,
+  #if CARD_ID == 0
+  DBG.printf("[CMD] lf=%.3f (rf=%.3f) rb=%.3f (lb=%.3f)\r\n",
+             cmd->lf_joint, cmd->rf_joint, 
              cmd->rb_joint, cmd->lb_joint);
+  #endif
+  #if CARD_ID == 1
+  DBG.printf("[CMD] (lf=%.3f) rf=%.3f (rb=%.3f) lb=%.3f\r\n",
+             cmd->lf_joint, cmd->rf_joint, 
+             cmd->rb_joint, cmd->lb_joint);
+  #endif
 
   base.updateSpeed(cmd);
 }
@@ -174,20 +186,47 @@ void setup()
     DBG.printf("       tentative %lu\r\n", ++n);
   DBG.println("[INIT] agent trouvé");
 
+
+  #if CARD_ID == 0
+
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, "/mcu0/micro_ros_node", "", &support));
   DBG.println("[INIT] node OK");
+
+  RCCHECK(rclc_publisher_init_default(
+    &wheels_publisher, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
+    "/mcu0/joint_states"));
 
   RCCHECK(rclc_publisher_init_default(
     &health_publisher, &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-    "micro_ros_node_health"));
+    "/mcu0/micro_ros_node_health"));
+
+  DBG.println("[INIT] publishers OK");
+  #endif
+
+  #if CARD_ID == 1
+
+  allocator = rcl_get_default_allocator();
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+  RCCHECK(rclc_node_init_default(&node, "/mcu0/micro_ros_node", "", &support));
+  DBG.println("[INIT] node OK");
+
   RCCHECK(rclc_publisher_init_default(
     &wheels_publisher, &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
-    "/micro_controller/joint_states"));
+    "/mcu1/joint_states"));
+
+  RCCHECK(rclc_publisher_init_default(
+    &health_publisher, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+    "/mcu1/micro_ros_node_health"));
+
   DBG.println("[INIT] publishers OK");
+  #endif
+  
 
   RCCHECK(rclc_subscription_init_default(
     &wheels_subscriber, &node,

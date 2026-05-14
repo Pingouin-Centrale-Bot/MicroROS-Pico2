@@ -8,6 +8,7 @@
 #include "FastAccelStepper.h"
 #include "config_stepper.h"
 
+#define LOG Serial
 
 const double _K = (M_DRIVE_STEPS_PER_TURN / (2.0 * M_PI)) * 1000.0 * M_DRIVE_MICROSTEP; // Constant for: (Steps per Rev / 2PI) * 1000ms * Microsteps (rad/s to milliHz)
 const int32_t _ACCEL = 17 * M_DRIVE_STEPS_PER_TURN * M_DRIVE_MICROSTEP; // Max acceleration of 1020rot/min², equivalent to 3.2 m/s²
@@ -19,12 +20,12 @@ FastAccelStepper *stepper = NULL;
 
 void disable_motor() {
     driver->enable();
-    //digitalWrite(M2_EN_PIN, HIGH); // Logique classique : HIGH = OFF
+    //digitalWrite(M1_EN_PIN, HIGH); // Logique classique : HIGH = OFF
 }
 
 void enable_motor() {
     driver->enable();
-    //digitalWrite(M2_EN_PIN, LOW); // LOW = ON
+    //digitalWrite(M1_EN_PIN, LOW); // LOW = ON
 }
 
 void set_speed(double w1) {
@@ -44,42 +45,46 @@ void set_speed(double w1) {
 
 void setup() {
 
-    Serial1.setRX(1);
-    Serial1.setTX(0);
-    Serial1.begin(115200);
+    M_DRIVE_SERIAL.setRX(M_DRIVE_RX);
+    M_DRIVE_SERIAL.setTX(M_DRIVE_TX);
+    M_DRIVE_SERIAL.begin(M_BAUDRATE_SERIAL);
 
-    Serial1.println("--- Setup ---");
+    //LOG.setRX(1);
+    //LOG.setTX(0);
+    LOG.begin(115200);
+
+    LOG.println("--- Setup ---");
     driver = new TMC2209();
     delay(2000);
-    driver->setup(Serial2, 115200, M2_DRIVER_ADDRESS, M_DRIVE_RX, M_DRIVE_TX);
+    driver->setupShared(M_DRIVE_SERIAL, M_BAUDRATE_SERIAL, M1_DRIVER_ADDRESS);
     //driver->setRMSCurrent(1000, M_R_SENSE);
     //driver->enable();
     //driver->setMicrostepsPerStep(16);
 
-    Serial1.println("Testing TMC2209 communication...");
-    Serial1.printf("[MotorStepper] isSetupAndCommunicating : %s\r\n", driver->isSetupAndCommunicating() ? "YES" : "NO");
-    Serial1.printf("[MotorStepper] isCommunicatingButNotSetup : %s\r\n", driver->isCommunicatingButNotSetup() ? "YES" : "NO");
-    Serial1.printf("[MotorStepper] isCommunicating : %s\r\n", driver->isCommunicating() ? "YES" : "NO");
+    LOG.println("Testing TMC2209 communication...");
+    LOG.printf("[MotorStepper] isSetupAndCommunicating : %s\r\n", driver->isSetupAndCommunicating() ? "YES" : "NO");
+    LOG.printf("[MotorStepper] isCommunicatingButNotSetup : %s\r\n", driver->isCommunicatingButNotSetup() ? "YES" : "NO");
+    LOG.printf("[MotorStepper] isCommunicating : %s\r\n", driver->isCommunicating() ? "YES" : "NO");
 
     
-    Serial1.println("--- Driver Setup OK ---");
+    LOG.println("--- Driver Setup OK ---");
     driver->setReplyDelay(4);
     driver->enableAutomaticCurrentScaling();
     driver->enableAutomaticGradientAdaptation();
     driver->setRMSCurrent(1000, M_R_SENSE, .3F);
     driver->setMicrostepsPerStep(M_DRIVE_MICROSTEP);
     driver->enable();
-    driver->setHardwareEnablePin(M2_EN_PIN);
+    driver->setHardwareEnablePin(M1_EN_PIN);
 
 
     engine.init();
     engine.setDebugLed(LED_BUILTIN);
-    stepper = engine.stepperConnectToPin(M2_STP_PIN);
+    stepper = engine.stepperConnectToPin(M1_STP_PIN);
     
-    stepper->setDirectionPin(M2_DIR_PIN, true, DIRECTION_DELAY);
+    stepper->setDirectionPin(M1_DIR_PIN, true, DIRECTION_DELAY);
     stepper->setAcceleration(_ACCEL);
     stepper->setForwardPlanningTimeInMs(10);
-    stepper->setEnablePin(M2_EN_PIN, true);
+    stepper->setEnablePin(M1_EN_PIN, true);
     stepper->setAutoEnable(false);
 
     disable_motor();
@@ -102,7 +107,7 @@ void loop() {
     set_speed(0.0);
     stepper->disableOutputs();
 
-    Serial1.println("Fin boucle");
+    LOG.println("Fin boucle");
 }
 
 #endif
